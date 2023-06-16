@@ -14,7 +14,7 @@ public class DateUtil {
 //    }
     //字符串转时间戳
     public static Long dataToStamp(String str) throws Exception {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         Date date = simpleDateFormat.parse(str);
         long ts = date.getTime();
         return ts;

@@ -16,13 +16,13 @@ public class MyTimestampExtractor implements AssignerWithPeriodicWatermarks<Stri
 
     //设置最大延迟时间
     //当前watermake时间减去 设置的maxTiemlog ,就会触发当前窗口
-    private final long maxTiemLag=30000L; //30 seconds
+    private final long maxTiemLag=0L; //30 seconds
     private Long currentMaxTimestamp=0L;
 
     @Nullable
     @Override
     public Watermark getCurrentWatermark() {
-
+        //System.out.println("currentMaxTimestamp:"+currentMaxTimestamp+"      maxTiemLag:"+maxTiemLag);
         Watermark a = new Watermark(currentMaxTimestamp-maxTiemLag);
         return a;
     }
@@ -32,7 +32,7 @@ public class MyTimestampExtractor implements AssignerWithPeriodicWatermarks<Stri
         Long time=0L;
         JSONObject jsonObject = JSON.parseObject(str);
         try {
-             time = dataToStamp(jsonObject.get("time").toString());
+             time = dataToStamp(jsonObject.get("event_time").toString());
             currentMaxTimestamp=Math.max(time,currentMaxTimestamp);
             System.out.println("time;"+time +"---------"+"time:"+stampToString(time.toString()));
             System.out.println("currentMaxTimestamp;"+currentMaxTimestamp +"---------"+"currentMaxTimestamp:"+stampToString(currentMaxTimestamp.toString()));

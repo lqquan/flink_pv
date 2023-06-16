@@ -1,6 +1,5 @@
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.zetyun.sink.MyRedisMapper;
 import com.zetyun.watermarks.MyTimestampExtractor;
 import com.zetyun.windows.MyProcessWindowFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
@@ -17,14 +16,15 @@ import org.apache.flink.streaming.api.windowing.evictors.TimeEvictor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.ContinuousEventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
-import org.apache.flink.streaming.connectors.redis.RedisSink;
-import org.apache.flink.streaming.connectors.redis.common.config.FlinkJedisPoolConfig;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.flink.util.Collector;
 
 import java.util.Properties;
 
-
+/**
+ *
+ *
+ */
 
 public class KafkaWindowCount {
     public static void main(String[] args) throws Exception {
@@ -36,12 +36,12 @@ public class KafkaWindowCount {
 
         //kafka info
         Properties props=new Properties();
-        props.setProperty("bootstrap.servers","172.20.3.195:9092");
+        props.setProperty("bootstrap.servers","172.20.8.154:9092");
         props.setProperty("group.id","flink_pv");
         props.setProperty("auto.offset.reset","earliest");//latest,earliest
 
         //获取kafka数据
-        DataStreamSource<String> readData = streamEnv.addSource(new FlinkKafkaConsumer010<String>("pv",
+        DataStreamSource<String> readData = streamEnv.addSource(new FlinkKafkaConsumer<String>("pv",
                 new SimpleStringSchema(), props));
 
        //设置Watermarks
@@ -54,10 +54,11 @@ public class KafkaWindowCount {
             @Override
             public void flatMap(String str, Collector<Tuple2<String, String>> out) throws Exception {
                 JSONObject jsonObject = JSON.parseObject(str);
-                out.collect(new Tuple2<String, String>(jsonObject.getString("time").substring(0,10), jsonObject.getString("session_id")));
+                System.out.println("jsonObject:"+jsonObject);
+                out.collect(new Tuple2<String, String>(jsonObject.getString("event_time"), jsonObject.getString("session_id")));
             }
         });
-        flatMapFiled.print();
+       // flatMapFiled.print();
         //先做keyby，这样window可以加大并发
         KeyedStream<Tuple2<String, String>, Tuple> tuple2TupleKeyedStream = flatMapFiled.keyBy(0);
 
@@ -79,18 +80,18 @@ public class KafkaWindowCount {
                 //全量聚合：窗口需要维护全部的数据，窗口触发会全量聚合，如processWindowFuntion
                 .process(new MyProcessWindowFunction());
 
-
+        process.print();
 
         //redis conf
-        FlinkJedisPoolConfig redisConf = new FlinkJedisPoolConfig.Builder()
-                .setHost("172.20.3.195")
-                .setPort(6382)
-                .build();
+//        FlinkJedisPoolConfig redisConf = new FlinkJedisPoolConfig.Builder()
+//                .setHost("172.20.3.195")
+//                .setPort(6382)
+//                .build();
 
         //sink kafka
 
 
-        process.addSink(new RedisSink<Tuple2<String, Long>>(redisConf,new MyRedisMapper()));
+     //   process.addSink(new RedisSink<Tuple2<String, Long>>(redisConf,new MyRedisMapper()));
 
 
         streamEnv.execute("KafkaWindowCount");
