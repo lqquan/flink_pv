@@ -19,7 +19,7 @@ public class MyProcessWindowFunction extends ProcessWindowFunction<Tuple2<String
 
     //自定义状态
     private transient MapState<String, Long> pvCountState;
-    private SimpleDateFormat formatter =new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public void open(Configuration parameters) throws Exception {
@@ -34,8 +34,9 @@ public class MyProcessWindowFunction extends ProcessWindowFunction<Tuple2<String
         //获取当前窗口时间，用当前窗口时间作为key，插入到state
         TimeWindow window = context.window();
         long startWindow = window.getStart();
-        System.out.println("startWindow: "+longToString(startWindow)+ "endWindow: "+longToString(window.getEnd()));
+        //System.out.println("startWindow: "+longToString(startWindow)+ "   endWindow: "+longToString(window.getEnd()));
         String formatStartWindow = formatter.format(startWindow).toString();
+        // System.out.println("formatStartWindow:"+formatStartWindow);
         //计算当前窗口的count
         long pvCount = 0;
         Iterator<Tuple2<String, String>> iterator = iterable.iterator();
@@ -50,6 +51,7 @@ public class MyProcessWindowFunction extends ProcessWindowFunction<Tuple2<String
         } else {
             pvCountState.put(formatStartWindow, pvCount + pvState);
         }
+
         collector.collect(new Tuple2<String, Long>(formatStartWindow, pvCountState.get(formatStartWindow)));
     }
 

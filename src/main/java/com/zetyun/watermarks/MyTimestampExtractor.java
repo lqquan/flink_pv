@@ -34,9 +34,9 @@ public class MyTimestampExtractor implements AssignerWithPeriodicWatermarks<Stri
         try {
              time = dataToStamp(jsonObject.get("event_time").toString());
             currentMaxTimestamp=Math.max(time,currentMaxTimestamp);
-            System.out.println("time;"+time +"---------"+"time:"+stampToString(time.toString()));
-            System.out.println("currentMaxTimestamp;"+currentMaxTimestamp +"---------"+"currentMaxTimestamp:"+stampToString(currentMaxTimestamp.toString()));
-            System.out.println("watermake: "+getCurrentWatermark().getTimestamp()+"getCurrentWatermark().getTimestamp()"+longToString(getCurrentWatermark().getTimestamp()));
+            //System.out.println("time;"+time +"---------"+"time:"+stampToString(time.toString()));
+            //System.out.println("currentMaxTimestamp;"+currentMaxTimestamp +"---------"+"currentMaxTimestamp:"+stampToString(currentMaxTimestamp.toString()));
+            //System.out.println("watermake: "+getCurrentWatermark().getTimestamp()+"getCurrentWatermark().getTimestamp()"+longToString(getCurrentWatermark().getTimestamp()));
             return time;
         } catch (Exception e) {
             e.printStackTrace();

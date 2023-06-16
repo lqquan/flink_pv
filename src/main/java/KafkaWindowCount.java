@@ -22,29 +22,29 @@ import org.apache.flink.util.Collector;
 import java.util.Properties;
 
 /**
- *
- *
+ * kafka-console-producer --broker-list cdh01:9092 --topic pv
+ * kafka-topics  --zookeeper cdh01:2181 --create --topic pv --partitions 1 --replication-factor 3
  */
 
 public class KafkaWindowCount {
     public static void main(String[] args) throws Exception {
-        StreamExecutionEnvironment  streamEnv=StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamExecutionEnvironment streamEnv = StreamExecutionEnvironment.getExecutionEnvironment();
 
         //set 事件时间
         streamEnv.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
         //checkpoint
-
+        //streamEnv.setParallelism(1);
         //kafka info
-        Properties props=new Properties();
-        props.setProperty("bootstrap.servers","172.20.8.154:9092");
-        props.setProperty("group.id","flink_pv");
-        props.setProperty("auto.offset.reset","earliest");//latest,earliest
+        Properties props = new Properties();
+        props.setProperty("bootstrap.servers", "172.20.8.154:9092");
+        props.setProperty("group.id", "flink_pv");
+        props.setProperty("auto.offset.reset", "earliest");//latest,earliest
 
         //获取kafka数据
         DataStreamSource<String> readData = streamEnv.addSource(new FlinkKafkaConsumer<String>("pv",
                 new SimpleStringSchema(), props));
 
-       //设置Watermarks
+        //设置Watermarks
         SingleOutputStreamOperator<String> stringSingleOutputStreamOperator =
                 readData.assignTimestampsAndWatermarks(new MyTimestampExtractor());
 
@@ -54,22 +54,23 @@ public class KafkaWindowCount {
             @Override
             public void flatMap(String str, Collector<Tuple2<String, String>> out) throws Exception {
                 JSONObject jsonObject = JSON.parseObject(str);
-                System.out.println("jsonObject:"+jsonObject);
-                out.collect(new Tuple2<String, String>(jsonObject.getString("event_time"), jsonObject.getString("session_id")));
+                // System.out.println("jsonObject:"+jsonObject);
+                //注意点：event_time 取值在0，10之间，是为了分在一个Parallelism，不然计算会出问题。后面做了keyby
+                out.collect(new Tuple2<String, String>(jsonObject.getString("event_time").toString().substring(0, 10), jsonObject.getString("session_id")));
             }
         });
-       // flatMapFiled.print();
+        // flatMapFiled.print();
         //先做keyby，这样window可以加大并发
         KeyedStream<Tuple2<String, String>, Tuple> tuple2TupleKeyedStream = flatMapFiled.keyBy(0);
 
         //Time.days(1),Time.hours(-8): 窗口大小是1天，由于flink默认的窗口时区是UTC-0,其地区需要指定时间偏移量调整时区，
         //TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8))
-       // tuple2TupleKeyedStream.print();
+        // tuple2TupleKeyedStream.print();
         SingleOutputStreamOperator<Tuple2<String, Long>> process = tuple2TupleKeyedStream.window(TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8)))
                 //ContinuousEventTimeTrigger 表示连续事件时间触发器，用在EventTime属性的任务流中，以事件时间的进度来推动定期触发
-                .trigger(ContinuousEventTimeTrigger.of(Time.seconds(1)))
+                .trigger(ContinuousEventTimeTrigger.of(Time.seconds(2)))
                 //CountTrigger 指定条数触发
-                .trigger(CountTrigger.of(1))
+                .trigger(CountTrigger.of(2))
                 //CountEvictor :数量剔除器。在window中保留指定数量的元素，并从窗口头部开始丢弃其余元素
                 //deltaEvictor: 阈值剔除器。计算window中最后一个元素与其余每个元素之间的增量，丢弃增量大于或等于阈值的元素
                 //TimeEvictor：时间剔除器。保留window最近一段内的元素，并丢弃其余元素
@@ -91,7 +92,7 @@ public class KafkaWindowCount {
         //sink kafka
 
 
-     //   process.addSink(new RedisSink<Tuple2<String, Long>>(redisConf,new MyRedisMapper()));
+        //   process.addSink(new RedisSink<Tuple2<String, Long>>(redisConf,new MyRedisMapper()));
 
 
         streamEnv.execute("KafkaWindowCount");

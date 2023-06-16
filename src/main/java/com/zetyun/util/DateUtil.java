@@ -22,15 +22,16 @@ public class DateUtil {
 
     //时间戳转字符串
     public static String stampToString(String timestamp) throws Exception {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         Long date=Long.valueOf(timestamp);
         return simpleDateFormat.format(date);
     }
 
     //时间戳转字符串
     public static String longToString(Long timestamp) throws Exception {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         Long date=Long.valueOf(timestamp);
         return simpleDateFormat.format(date);
     }
+
 }
